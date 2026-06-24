@@ -41,6 +41,8 @@
       - tar
       - unzip
       - xdg-utils
+      - xclip
+      - xdotool
       - xz-utils
     state: present
     update_cache: false

@@ -28,6 +28,7 @@ osworld_server_repo_url: https://github.com/xlang-ai/osworld-server.git
 osworld_server_commit: a3cc3f0c64e463f020d1a44780307e9b46cbcab1
 osworld_server_local_archive: "{{ controller_download_dir }}/osworld_server/osworld-server-{{ osworld_server_commit }}.tar.gz"
 osworld_uv_version: "0.9.13"
+osworld_pyperclip_version: "1.11.0"
 osworld_service_name: osworld.service
 osworld_server_host: 0.0.0.0
 osworld_server_port: 5000

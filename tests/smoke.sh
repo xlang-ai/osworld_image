@@ -51,8 +51,12 @@ assert_file_contains() {
 
 command -v node >/dev/null 2>&1 || fail "node command missing"
 command -v npm >/dev/null 2>&1 || fail "npm command missing"
+command -v xclip >/dev/null 2>&1 || fail "xclip command missing"
+command -v xdotool >/dev/null 2>&1 || fail "xdotool command missing"
 node --version | grep -Eq '^v[0-9]+' || fail "node --version did not return a version"
 npm --version | grep -Eq '^[0-9]+' || fail "npm --version did not return a version"
+xclip -version >/dev/null 2>&1 || fail "xclip version check failed"
+xdotool -v >/dev/null 2>&1 || fail "xdotool version check failed"
 
 assert_dpkg_version obsidian "1.10.6"
 assert_dpkg_version xmind-vana "26.1.3145"
@@ -176,6 +180,11 @@ done
 [[ -n "$server_marker" ]] || fail "OSWorld server commit marker missing"
 server_commit="$(cat "$server_marker")"
 [[ "$server_commit" == "a3cc3f0c64e463f020d1a44780307e9b46cbcab1" ]] || fail "OSWorld server commit marker mismatch"
+server_dir="$(dirname "$server_marker")"
+server_python="$server_dir/.venv/bin/python"
+test -x "$server_python" || fail "OSWorld server venv Python missing"
+pyperclip_version="$("$server_python" -c "import importlib.metadata; print(importlib.metadata.version('pyperclip'))")"
+[[ "$pyperclip_version" == "1.11.0" ]] || fail "pyperclip version expected 1.11.0, got $pyperclip_version"
 
 systemctl is-active --quiet osworld.service || fail "osworld.service is not active"
 ss -ltn | awk '$4 ~ /:5000$/ { found=1 } END { exit found ? 0 : 1 }' \

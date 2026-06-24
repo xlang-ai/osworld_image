@@ -105,6 +105,12 @@ variable "aws_associate_public_ip" {
   default = true
 }
 
+variable "aws_ami_name" {
+  type        = string
+  default     = ""
+  description = "Optional exact AMI name. Defaults to aws_ami_name_prefix-build_id when empty."
+}
+
 variable "aws_ami_name_prefix" {
   type    = string
   default = "osworld-delta"

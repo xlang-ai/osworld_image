@@ -101,6 +101,17 @@
     'Creating virtual environment' in (osworld_uv_sync.stdout + osworld_uv_sync.stderr)
     or 'Installed ' in (osworld_uv_sync.stdout + osworld_uv_sync.stderr)
 
+- name: Install pyperclip in OSWorld server Python environment
+  ansible.builtin.command: "{{ effective_osworld_home }}/.local/bin/uv pip install pyperclip=={{ osworld_pyperclip_version }}"
+  become: true
+  become_user: "{{ effective_osworld_user }}"
+  environment:
+    HOME: "{{ effective_osworld_home }}"
+  args:
+    chdir: "{{ osworld_server_dest }}"
+  register: osworld_pyperclip_install
+  changed_when: "'Installed ' in (osworld_pyperclip_install.stdout + osworld_pyperclip_install.stderr)"
+
 - name: Install OSWorld systemd service
   ansible.builtin.copy:
     dest: "/etc/systemd/system/{{ osworld_service_name }}"

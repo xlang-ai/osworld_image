@@ -1,7 +1,7 @@
 source "amazon-ebs" "osworld" {
   region      = var.aws_region
   source_ami  = var.aws_source_ami
-  ami_name    = "${var.aws_ami_name_prefix}-${local.effective_build_id}"
+  ami_name    = var.aws_ami_name != "" ? var.aws_ami_name : "${var.aws_ami_name_prefix}-${local.effective_build_id}"
   ami_description = "OSWorld deterministic delta from ${var.aws_source_ami}"
 
   instance_type = var.aws_instance_type
