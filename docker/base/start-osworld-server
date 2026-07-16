@@ -43,7 +43,7 @@ for _ in $(seq 1 60); do
   sleep 1
 done
 
-cd "$SERVER_PATH"
+cd "$OSWORLD_HOME"
 if [ -x "$SERVER_PATH/.venv/bin/python" ]; then
   exec "$SERVER_PATH/.venv/bin/python" "$SERVER_PATH/main.py"
 fi

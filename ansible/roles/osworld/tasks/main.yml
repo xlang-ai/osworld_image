@@ -127,7 +127,7 @@
       Type=simple
       ExecStart={{ osworld_server_dest }}/.venv/bin/python {{ osworld_server_dest }}/main.py
       User={{ effective_osworld_user }}
-      WorkingDirectory={{ osworld_server_dest }}
+      WorkingDirectory={{ effective_osworld_home }}
       Environment="DISPLAY=:0"
       {% if target_platform | default('') == 'qemu' %}
       Environment="XAUTHORITY=/run/user/{{ effective_osworld_uid }}/gdm/Xauthority"
