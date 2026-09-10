@@ -83,6 +83,9 @@ docker exec "$CONTAINER_NAME" bash -lc '
     sudo -u "$user_name" env "${user_env[@]}" "$@"
   }
 
+  # Native Docker has no snapd; verify the tarball application and database.
+  python3 /usr/local/sbin/initialize-zotero "$user_name" --layout native
+
   launch_as_user xdg-settings get default-web-browser | grep -qx "google-chrome.desktop" \
     || fail "Chrome is not the default browser"
 

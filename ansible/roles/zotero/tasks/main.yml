@@ -5,7 +5,50 @@
     mode: "0755"
 
 - name: Enable Zotero local communication settings
-  ansible.builtin.command: "/usr/local/sbin/configure-zotero-prefs {{ effective_osworld_user }} {{ effective_osworld_home }}"
+  ansible.builtin.command:
+    argv:
+      - /usr/local/sbin/configure-zotero-prefs
+      - "{{ effective_osworld_user }}"
+      - "{{ effective_osworld_home }}"
+  changed_when: true
+
+- name: Configure the task-compatible Zotero snap profile
+  ansible.builtin.command:
+    argv:
+      - /usr/local/sbin/configure-zotero-prefs
+      - "{{ effective_osworld_user }}"
+      - "{{ effective_osworld_home }}"
+      - snap
+  when: target_platform | default('') != 'docker'
+  changed_when: true
+
+- name: Require strict Zotero snap confinement
+  ansible.builtin.shell: |
+    set -euo pipefail
+    grep -qx 'confinement: strict' /snap/zotero-snap/current/meta/snap.yaml
+    notes="$(snap list zotero-snap | awk 'NR==2 {print $NF}')"
+    case ",$notes," in
+      *,devmode,*|*,classic,*) printf 'Zotero snap confinement is disabled\n' >&2; exit 1 ;;
+    esac
+  args:
+    executable: /bin/bash
+  when: target_platform | default('') != 'docker'
+  changed_when: false
+
+- name: Install Zotero database initializer and runtime check
+  ansible.builtin.copy:
+    src: initialize-zotero.py
+    dest: /usr/local/sbin/initialize-zotero
+    mode: "0755"
+
+- name: Initialize the Zotero snap database through the real application
+  ansible.builtin.command:
+    argv:
+      - /usr/local/sbin/initialize-zotero
+      - "{{ effective_osworld_user }}"
+      - --layout
+      - snap
+  when: target_platform | default('') != 'docker'
   changed_when: true
 
 - name: Verify Zotero HTTP server preference
@@ -16,4 +59,3 @@
   args:
     executable: /bin/bash
   changed_when: false
-

@@ -1,0 +1,199 @@
+- name: Check controller snap package cache
+  ansible.builtin.stat:
+    path: "{{ controller_snap_download_dir }}/{{ item.name }}.snap"
+    checksum_algorithm: sha256
+  delegate_to: localhost
+  become: false
+  register: controller_snap_package_stat
+  failed_when: >-
+    controller_snap_package_stat.stat.exists
+    and item.checksum is defined
+    and controller_snap_package_stat.stat.checksum != (item.checksum | regex_replace('^sha256:', ''))
+  loop: "{{ snap_packages }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when: target_platform | default('') != 'docker'
+
+- name: Check controller snap assertion cache
+  ansible.builtin.stat:
+    path: "{{ controller_snap_download_dir }}/{{ item.name }}.assert"
+  delegate_to: localhost
+  become: false
+  register: controller_snap_assert_stat
+  loop: "{{ snap_packages }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when: target_platform | default('') != 'docker'
+
+- name: Copy cached snap packages from controller
+  ansible.builtin.copy:
+    src: "{{ controller_snap_download_dir }}/{{ item.item.name }}.snap"
+    dest: "{{ artifact_cache_dir }}/{{ item.item.name }}.snap"
+    mode: "0644"
+  loop: "{{ controller_snap_package_stat.results | default([]) }}"
+  loop_control:
+    label: "{{ item.item.name }}"
+  when:
+    - target_platform | default('') != 'docker'
+    - item.stat.exists
+
+- name: Copy cached snap assertions from controller
+  ansible.builtin.copy:
+    src: "{{ controller_snap_download_dir }}/{{ item.item.name }}.assert"
+    dest: "{{ artifact_cache_dir }}/{{ item.item.name }}.assert"
+    mode: "0644"
+  loop: "{{ controller_snap_assert_stat.results | default([]) }}"
+  loop_control:
+    label: "{{ item.item.name }}"
+  when:
+    - target_platform | default('') != 'docker'
+    - item.stat.exists
+
+- name: Acknowledge cached snap assertions
+  ansible.builtin.command: "snap ack {{ artifact_cache_dir }}/{{ item.item.name }}.assert"
+  register: snap_ack_result
+  changed_when: false
+  loop: "{{ controller_snap_assert_stat.results | default([]) }}"
+  loop_control:
+    label: "{{ item.item.name }}"
+  when:
+    - target_platform | default('') != 'docker'
+    - item.stat.exists
+    - >-
+      (
+        controller_snap_package_stat.results
+        | selectattr('item.name', 'equalto', item.item.name)
+        | map(attribute='stat.exists')
+        | first
+        | default(false)
+      )
+
+- name: Install cached snap packages with post-install version gate
+  ansible.builtin.command: >-
+    snap install {{ artifact_cache_dir }}/{{ item.item.name }}.snap
+    {{
+      ' --classic' if item.item.classic
+      else ''
+    }}
+    {{
+      '' if (
+        controller_snap_assert_stat.results
+        | selectattr('item.name', 'equalto', item.item.name)
+        | map(attribute='stat.exists')
+        | first
+        | default(false)
+      )
+      else ' --dangerous'
+    }}
+  register: cached_snap_install_result
+  changed_when: "'is already installed' not in (cached_snap_install_result.stderr + cached_snap_install_result.stdout)"
+  failed_when:
+    - cached_snap_install_result.rc != 0
+    - "'is already installed' not in (cached_snap_install_result.stderr + cached_snap_install_result.stdout)"
+  loop: "{{ controller_snap_package_stat.results | default([]) }}"
+  loop_control:
+    label: "{{ item.item.name }}"
+  when:
+    - target_platform | default('') != 'docker'
+    - item.stat.exists
+
+- name: Install missing snap packages with post-install version gate
+  ansible.builtin.command: >-
+    snap install {{ item.name }}{{ ' --classic' if item.classic else '' }}
+    {{ '--revision=' ~ item.revision if item.revision is defined else '' }}
+  register: snap_install_result
+  changed_when: "'is already installed' not in (snap_install_result.stderr + snap_install_result.stdout)"
+  failed_when:
+    - snap_install_result.rc != 0
+    - "'is already installed' not in (snap_install_result.stderr + snap_install_result.stdout)"
+  loop: "{{ snap_packages }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when:
+    - target_platform | default('') != 'docker'
+    - >-
+      not (
+        controller_snap_package_stat.results
+        | default([])
+        | selectattr('item.name', 'equalto', item.name)
+        | map(attribute='stat.exists')
+        | first
+        | default(false)
+      )
+
+- name: Align existing snaps with pinned revisions
+  ansible.builtin.shell: |
+    set -euo pipefail
+    installed_revision="$(snap list {{ item.name | quote }} | awk 'NR==2 {print $3}')"
+    if [ "$installed_revision" = {{ item.revision | default('') | quote }} ]; then
+      printf 'changed=0\n'
+    else
+      snap refresh {{ item.name | quote }} --revision={{ item.revision | default('') | quote }}
+      printf 'changed=1\n'
+    fi
+  args:
+    executable: /bin/bash
+  register: pinned_snap_revision
+  changed_when: "'changed=1' in pinned_snap_revision.stdout"
+  loop: "{{ snap_packages }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when:
+    - target_platform | default('') != 'docker'
+    - item.revision is defined
+
+- name: Hold pinned snaps against automatic refresh
+  ansible.builtin.command: "snap refresh --hold=forever {{ item.name }}"
+  loop: "{{ snap_packages }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when:
+    - target_platform | default('') != 'docker'
+    - item.revision is defined
+  changed_when: false
+
+- name: Verify installed pinned snap contents
+  ansible.builtin.stat:
+    path: "/var/lib/snapd/snaps/{{ item.name }}_{{ item.revision }}.snap"
+    checksum_algorithm: sha256
+  register: installed_snap_artifact
+  failed_when: >-
+    not installed_snap_artifact.stat.exists
+    or installed_snap_artifact.stat.checksum != (item.checksum | regex_replace('^sha256:', ''))
+  loop: "{{ snap_packages }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when:
+    - target_platform | default('') != 'docker'
+    - item.revision is defined
+    - item.checksum is defined
+
+- name: Verify snap package versions
+  ansible.builtin.shell: "set -euo pipefail; snap list {{ item.name }} | awk 'NR==2 {print $2}'"
+  args:
+    executable: /bin/bash
+  register: snap_versions
+  changed_when: false
+  failed_when: snap_versions.stdout != item.expected_version
+  loop: "{{ snap_packages }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when: target_platform | default('') != 'docker'
+
+- name: Remove transient snap package artifacts
+  ansible.builtin.file:
+    path: "{{ artifact_cache_dir }}/{{ item.name }}.snap"
+    state: absent
+  loop: "{{ snap_packages }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when: target_platform | default('') != 'docker'
+
+- name: Remove transient snap assertion artifacts
+  ansible.builtin.file:
+    path: "{{ artifact_cache_dir }}/{{ item.name }}.assert"
+    state: absent
+  loop: "{{ snap_packages }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when: target_platform | default('') != 'docker'

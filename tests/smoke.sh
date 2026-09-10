@@ -80,6 +80,16 @@ assert_contains "$blender_version" "Blender 5.0.0" "Blender version"
 zotero_version="$(awk -F= '/^Version=/ {print $2}' /opt/zotero-8.0.2/Zotero_linux-x86_64/app/application.ini)"
 [[ "$zotero_version" == "8.0.2" ]] || fail "Zotero version expected 8.0.2, got $zotero_version"
 
+# The Docker provider boots a full VM; its tasks call snap run zotero-snap.
+zotero_snap="$(snap list zotero-snap | awk 'NR==2 {print $2 " " $3}')"
+[[ "$zotero_snap" == "9.0.1 128" ]] || fail "Zotero snap expected 9.0.1 revision 128, got $zotero_snap"
+assert_file_sha256 /var/lib/snapd/snaps/zotero-snap_128.snap "9d4cd8ab1bcba8bd98e042f7f6b0ee4303f422aa04ab1c3ca100c99ff68e7713"
+grep -qx 'confinement: strict' /snap/zotero-snap/current/meta/snap.yaml \
+  || fail "Zotero snap must use strict confinement"
+snap list zotero-snap | awk 'NR==2 {print $NF}' | grep -Eq '(^|,)devmode(,|$)|(^|,)classic(,|$)' \
+  && fail "Zotero snap confinement must not be disabled"
+python3 /usr/local/sbin/initialize-zotero "$OSWORLD_USER" --layout snap
+
 assert_desktop_icon shotcut shotcut /usr/share/icons/hicolor/128x128/apps/shotcut.png
 assert_desktop_icon labplot labplot /usr/share/icons/hicolor/scalable/apps/labplot.svg
 assert_desktop_icon musescore musescore /usr/share/icons/hicolor/512x512/apps/musescore.png

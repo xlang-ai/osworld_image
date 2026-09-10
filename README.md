@@ -14,6 +14,7 @@ Supported build targets:
 - Docker XFCE update image, derived from the Docker base image and the same Ansible delta
 
 See [docs/usage.md](docs/usage.md) for more detailed usage notes.
+See [Zotero image parity](docs/zotero-image-parity.md) for the August 25 snap fix and focused validation commands.
 
 ## Repository Layout
 
@@ -185,6 +186,7 @@ The Ansible playbook installs or verifies these versions:
 - Shotcut `26.2.26`
 - XMind `26.01.03145`
 - Zotero `8.0.2`
+- Zotero snap `9.0.1`, revision `128` on VM targets, matching the August 25 image fix
 - LabPlot `2.12.1`
 - Blender `5.0.0`
 - WPS Office `11.1.0.11723`
@@ -196,7 +198,7 @@ The separate Windows playbook installs WPS Office `12.2.0.23131` only, updates t
 It also configures:
 
 - Chrome Safe Browsing as a no-protection managed policy
-- Zotero local communication preferences
+- Zotero local communication preferences and initialized snap task database
 - OSWorld server from `downloads/osworld_server/` when cached, otherwise `https://github.com/xlang-ai/osworld-server`
 - `/etc/X11/xorg.conf` with `MaxClients 2048`
 - Common office MIME defaults to LibreOffice
@@ -210,7 +212,7 @@ It also configures:
 
 - Application versions or pinned artifact checksums
 - Chrome policy
-- Zotero preferences
+- Zotero preferences, real application startup, local API and database integrity
 - Xorg `MaxClients`
 - LibreOffice MIME defaults
 - WPS fonts

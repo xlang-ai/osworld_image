@@ -117,6 +117,12 @@ download_osworld_server_archive() {
 
 download_snap_package() {
   local name="$1"
+  local revision="${2:-}"
+  local expected_sha256="${3:-}"
+  local revision_args=()
+  if [ -n "$revision" ]; then
+    revision_args=("--revision=$revision")
+  fi
   local dest_dir="$PROVISION_DIR/snaps"
   local snap_dest="$dest_dir/$name.snap"
   local assert_dest="$dest_dir/$name.assert"
@@ -127,6 +133,9 @@ download_snap_package() {
   mkdir -p "$dest_dir"
 
   if [ -f "$snap_dest" ] && [ -f "$assert_dest" ]; then
+    if [ -n "$expected_sha256" ]; then
+      printf '%s  %s\n' "$expected_sha256" "$snap_dest" | sha256sum --check --status
+    fi
     printf 'Using existing %s and %s\n' "$snap_dest" "$assert_dest"
     return
   fi
@@ -139,7 +148,7 @@ download_snap_package() {
   tmp_dir="$(mktemp -d)"
   (
     cd "$tmp_dir"
-    snap download "$name"
+    snap download "$name" "${revision_args[@]}"
   )
 
   snap_file="$(find "$tmp_dir" -maxdepth 1 -type f -name "${name}_*.snap" | sort | head -n 1)"
@@ -154,6 +163,9 @@ download_snap_package() {
   mv "$snap_file" "$snap_dest"
   mv "$assert_file" "$assert_dest"
   rm -rf "$tmp_dir"
+  if [ -n "$expected_sha256" ]; then
+    printf '%s  %s\n' "$expected_sha256" "$snap_dest" | sha256sum --check --status
+  fi
   printf 'Snap package: %s\n' "$snap_dest"
   printf 'Snap assertion: %s\n' "$assert_dest"
 }
@@ -212,6 +224,7 @@ download_checked \
 "$ROOT_DIR/scripts/download-wps-fonts.sh"
 "$ROOT_DIR/scripts/download-qemu-ssh-debs.sh"
 download_snap_package "audacity"
+download_snap_package "zotero-snap" "128" "9d4cd8ab1bcba8bd98e042f7f6b0ee4303f422aa04ab1c3ca100c99ff68e7713"
 download_osworld_server_archive
 
 printf 'Provision assets cached under %s\n' "$DOWNLOAD_DIR"
