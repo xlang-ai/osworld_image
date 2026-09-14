@@ -70,6 +70,13 @@ snap_packages:
   - name: audacity
     classic: false
     expected_version: "3.7.5"
+  # Matches xlangai/v2-image commit 6e16459 (2026-08-25), HF PR #6.
+  # Tasks 011/036/062 launch this snap and use its common/Zotero database.
+  - name: zotero-snap
+    classic: false
+    expected_version: "9.0.1"
+    revision: "128"
+    checksum: "sha256:9d4cd8ab1bcba8bd98e042f7f6b0ee4303f422aa04ab1c3ca100c99ff68e7713"
 
 appimages:
   - name: shotcut

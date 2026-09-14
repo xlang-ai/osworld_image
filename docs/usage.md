@@ -152,6 +152,7 @@ The playbook installs or verifies these versions:
 - Shotcut `26.2.26`
 - XMind `26.01.03145`
 - Zotero `8.0.2`
+- Zotero snap `9.0.1`, revision `128` on VM targets; see [image parity notes](zotero-image-parity.md)
 - LabPlot `2.12.1`
 - Blender `5.0.0`
 - WPS Office `11.1.0.11723`

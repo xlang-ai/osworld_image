@@ -185,6 +185,7 @@ Ansible playbook 会安装或验证以下版本：
 - Shotcut `26.2.26`
 - XMind `26.01.03145`
 - Zotero `8.0.2`
+- VM 目标额外安装 Zotero snap `9.0.1`（revision `128`），与 8 月 25 日镜像修复一致
 - LabPlot `2.12.1`
 - Blender `5.0.0`
 - WPS Office `11.1.0.11723`
@@ -196,7 +197,7 @@ Ansible playbook 会安装或验证以下版本：
 同时会配置：
 
 - Chrome Safe Browsing 为 no protection managed policy
-- Zotero 本机通信设置
+- Zotero 本机通信设置及任务使用的 snap 数据库初始化
 - OSWorld server，缓存存在时来自 `downloads/osworld_server/`，否则回退到 `https://github.com/xlang-ai/osworld-server`
 - `/etc/X11/xorg.conf` 的 `MaxClients 2048`
 - 常见 office MIME 类型默认使用 LibreOffice
@@ -210,7 +211,7 @@ Ansible playbook 会安装或验证以下版本：
 
 - 应用版本或 pinned artifact checksum
 - Chrome policy
-- Zotero preference
+- Zotero preference、实际启动、本机 API 和数据库完整性（[8 月 25 日修复说明及测试入口](docs/zotero-image-parity.md)）
 - Xorg `MaxClients`
 - LibreOffice MIME defaults
 - WPS fonts

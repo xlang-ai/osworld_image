@@ -21,4 +21,6 @@ packer/packer_cache/
 *.key
 *.pub
 manifest.json
-
+__pycache__/
+*.py[cod]
+.pytest_cache/

@@ -1,0 +1,50 @@
+# Run on a disposable, booted OSWorld VM with snapd and X11 already running:
+# ansible-playbook -i <inventory> tests/zotero.yml
+# Add -e target_platform=docker for the native Docker profile branch.
+- name: Verify the Zotero image delta
+  hosts: all
+  become: true
+  gather_facts: false
+  vars_files:
+    - ../ansible/group_vars/all.yml
+  vars:
+    target_platform: qemu
+    controller_download_dir: "{{ playbook_dir }}/../downloads"
+  tasks:
+    - name: Resolve desktop user
+      ansible.builtin.set_fact:
+        effective_osworld_user: "{{ osworld_user | default(default_osworld_user) }}"
+
+    - name: Resolve desktop home
+      ansible.builtin.command: "getent passwd {{ effective_osworld_user }}"
+      register: desktop_account
+      changed_when: false
+
+    - name: Select Zotero package and home
+      ansible.builtin.set_fact:
+        effective_osworld_home: "{{ desktop_account.stdout.split(':')[5] }}"
+        snap_packages: "{{ snap_packages | selectattr('name', 'equalto', 'zotero-snap') | list }}"
+
+    - name: Create artifact cache
+      ansible.builtin.file:
+        path: "{{ artifact_cache_dir }}"
+        state: directory
+        mode: "0755"
+
+    - name: Install pinned Zotero snap
+      ansible.builtin.include_tasks: ../ansible/roles/packages/tasks/snaps.yml
+      when: target_platform != 'docker'
+
+    - name: Apply and verify the Zotero configuration
+      ansible.builtin.include_role:
+        name: "{{ playbook_dir }}/../ansible/roles/zotero"
+
+    - name: Verify the native Docker application
+      ansible.builtin.command:
+        argv:
+          - /usr/local/sbin/initialize-zotero
+          - "{{ effective_osworld_user }}"
+          - --layout
+          - native
+      when: target_platform == 'docker'
+      changed_when: false
